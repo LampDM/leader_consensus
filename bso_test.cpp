@@ -248,11 +248,52 @@ uint8_t lled = 0xfe;
 
 }
 
+
+
 void test_task(void *pvParameters)
 {
+	uint8_t scl = 14, sda = 12;
+	uint8_t buff[20];
+
+	i2c_init(BUS, scl, sda, I2C_FREQ_400K);
+
+	//	setUp();
+
+	uint8_t cnt = 0;
+	uint8_t lled = 0b11111110;
+
+	// Main loop
 	while (true){
-		printf("lolcat\n");
-		vTaskDelay(500 / portTICK_PERIOD_MS);
+			printf("test task running!\n");
+			for (int i=0; i<4; i++) {
+				writeByte(PCF_ADDRESS, lled);
+				//gpio_write(gpio, 0);
+				vTaskDelay(100 / portTICK_PERIOD_MS);
+
+				lled <<= 1; lled |= 0x01;
+			}
+			lled = 0b11111110;
+
+	}
+
+}
+
+void test_task2(void *pvParameters)
+{
+	uint8_t scl = 14, sda = 12;
+	uint8_t buff[20];
+
+	i2c_init(BUS, scl, sda, I2C_FREQ_400K);
+
+	//	setUp();
+
+
+
+	// Main loop
+	while (true){
+		printf("secondary task listening!\n");
+		vTaskDelay(1000 / portTICK_PERIOD_MS);
+
 	}
 
 }
@@ -282,13 +323,14 @@ void user_init(void)
     IOMUX_GPIO2 = IOMUX_GPIO2_FUNC_GPIO | IOMUX_PIN_OUTPUT_ENABLE;
     GPIO.OUT_SET= BIT(gpio);
 
-    printf("Starting TFTP server...");
-    ota_tftp_init_server(TFTP_PORT);
 
     printf("Heap: %i\n", (int) xPortGetFreeHeapSize());
 
-    // Create user interface task
-    //xTaskCreate(PCF_task, "PCF_task", 512, 0, 2, NULL);
+
+
+
+
 		xTaskCreate(test_task,"test_task",512,0,2,NULL);
+		xTaskCreate(test_task2,"test_task2",512,0,2,NULL);
 
 }
