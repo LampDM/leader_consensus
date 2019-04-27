@@ -23,6 +23,8 @@
 
 const uint8_t address[] = { 0x01, 0x23, 0x45, 0x67, 0x89 };
 
+//const uint8_t address[] = { 1, 2, 3, 4, 5 };
+
 static RF24 radio(CE_NRF, CS_NRF);
 
 // write byte to PCF on I2C bus
@@ -53,20 +55,13 @@ static inline uint8_t read_byte_pcf() {
 static inline void setup_nrf() {
 
 	uart_set_baud(0, 115200);
+
 	gpio_enable(SCL, GPIO_OUTPUT);
 	gpio_enable(CS_NRF, GPIO_OUTPUT);
-
-	// WiFi configuration
-	//struct sdk_station_config config = { WIFI_SSID, WIFI_PASS };
-	//sdk_wifi_station_set_auto_connect(1);
-	//sdk_wifi_set_opmode(STATION_MODE);
-	//sdk_wifi_station_set_config(&config);
-	//sdk_wifi_station_connect();
-
-	// OTA configuration
-	//ota_tftp_init_server(TFTP_PORT);
-
 	// radio configuration
 	radio.begin();
 	radio.setChannel(channel);
+	radio.setAutoAck(true);
+
+
 }

@@ -1,8 +1,8 @@
 #include "nrf24.h"
-
 #include <espressif/esp_sta.h>
 #include <espressif/esp_wifi.h>
-
+#include <time.h>
+#include <stdio.h>
 extern "C" {
 #include "paho_mqtt_c/MQTTESP8266.h"
 #include "paho_mqtt_c/MQTTClient.h"
@@ -25,6 +25,10 @@ static char rx_data[rx_size];
 #define tx_size		6
 static char tx_buffer[tx_size] = "hello" ;
 static int c = 0;
+static bool hastoSend = false;
+
+uint8_t address1[] = { 0x01, 0x23, 0x45, 0x67, 0x89 };
+uint8_t address2[] = { 0x35, 0x23, 0x45, 0x67, 0x89 };
 
 char int_to_char(int i){
 
@@ -32,25 +36,7 @@ char int_to_char(int i){
 
 }
 
-// transmit data
-void transmit_nrf24() {
 
-	// turn on led1
-	write_byte_pcf(led1);
-
-	radio.powerUp();
-	radio.stopListening();
-	//radio.write(&tx_buffer, sizeof(tx_buffer));
-	//tx_buffer[0]=c;
-	tx_buffer[0]=int_to_char(c);
-	radio.write(&tx_buffer,sizeof(tx_buffer));
-	c++;
-	radio.powerDown();
-
-	// turn off leds
-	vTaskDelay(pdMS_TO_TICKS(300));
-	write_byte_pcf(0xff);
-}
 
 static const char * get_my_id(void) {
 	// Use MAC address for Station as unique ID
@@ -77,60 +63,97 @@ static const char * get_my_id(void) {
 	return my_id;
 }
 
+// transmit data
+void transmit_nrf24() {
 
+	// turn on led1
+	//write_byte_pcf(led1);
 
-void send_task(void *pvParameters) {
-	radio.openWritingPipe(address);
-	radio.powerDown();
-	while (1){
-		printf("sending a shitty message\n");
-		transmit_nrf24();
-		vTaskDelay(pdMS_TO_TICKS(15000));
-	}
+	//radio.powerUp();
+	//radio.stopListening();
+	radio.write(&tx_buffer, sizeof(tx_buffer));
+	//tx_buffer[0]=c;
+	tx_buffer[0]=int_to_char(c);
+	radio.write(&tx_buffer,sizeof(tx_buffer));
+	c++;
+	//radio.startListening();
+	//radio.powerDown();
+
+	// turn off leds
+	//vTaskDelay(pdMS_TO_TICKS(1000));
+	//write_byte_pcf(0xff);
 }
 
-// listen to the radio
-void listen_task(void *pvParameters) {
+
+void reset_radio(){
+	//Shut down and reset radio here
+	radio.stopListening();
+	radio.powerDown();
+	gpio_enable(SCL, GPIO_OUTPUT);
+	gpio_enable(CS_NRF, GPIO_OUTPUT);
+	// radio configuration
+	radio.begin();
+	radio.setChannel(channel);
+	radio.setAutoAck(false);
+	radio.powerUp();
+}
+
+void election_timer(void *pvParameters){
+	while(1){
+		vTaskDelay(pdMS_TO_TICKS(500));
+		hastoSend=true;
+	}
+
+}
+
+void test_Task(void *pvParameters){
+
+	printf("some init\n");
+
 
 	radio.openReadingPipe(1, address);
-	radio.startListening();
+	while(1){
 
-	static char msg[PUB_MSG_LEN];
-	static int count = 0;
-
-	while (1) {
-
+		radio.startListening();
 		if (radio.available()) {
 			radio.read(&rx_data, sizeof(rx_data));
-			printf("Received message: %s\n", rx_data);
 
-			// turn on led1
-			write_byte_pcf(led1);
-			vTaskDelay(pdMS_TO_TICKS(200));
-			write_byte_pcf(0xff);
+				if (rx_data[1] == 101){
+					printf("Received message: %d\n", rx_data[1]);
+					hastoSend = true;
+					printf("%d\n",rx_data[0]);
+					//int someint = *((int*)pvParameters);
+
+					// turn on led1
+					write_byte_pcf(led1);
+					vTaskDelay(pdMS_TO_TICKS(200));
+					write_byte_pcf(0xff);
+				}
+
+		}else{
+				if (hastoSend){
+
+					reset_radio();
+					printf("I need to send a message!\n");
+					printf("sending a message\n");
+					radio.openWritingPipe(address);
+					radio.stopListening();
+					transmit_nrf24();
+					radio.printDetails();
+					hastoSend = false;
+					radio.openReadingPipe(1, address);
+
+				}
 		}
 
-		// button1 is pressed
-		if ((read_byte_pcf() & button1) == 0) {
-			// turn off leds
-			write_byte_pcf(0xff);
-		}
-
-		// sleep for 200 ms
-		radio.powerDown();
-		vTaskDelay(pdMS_TO_TICKS(200));
-		radio.powerUp();
 	}
+
 }
 
 extern "C" void user_init(void) {
 
-
 	setup_nrf();
-
-	xTaskCreate(listen_task, "Radio listen task", 1000, NULL, 3, NULL);
-	xTaskCreate(send_task,"Sending task on radio",1000,NULL,3,NULL);
-
-
+	xTaskCreate(test_Task,"testing",1000, (void*)&address1 ,2,NULL);
+	xTaskCreate(election_timer, "election timer",1000,(void*)&address1,3,NULL);
 
 }
