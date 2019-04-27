@@ -31,11 +31,8 @@ uint8_t address1[] = { 0x01, 0x23, 0x45, 0x67, 0x89 };
 uint8_t address2[] = { 0x35, 0x23, 0x45, 0x67, 0x89 };
 
 char int_to_char(int i){
-
 	return i+48;
-
 }
-
 
 
 static const char * get_my_id(void) {
@@ -66,22 +63,11 @@ static const char * get_my_id(void) {
 // transmit data
 void transmit_nrf24() {
 
-	// turn on led1
-	//write_byte_pcf(led1);
-
-	//radio.powerUp();
-	//radio.stopListening();
 	radio.write(&tx_buffer, sizeof(tx_buffer));
-	//tx_buffer[0]=c;
 	tx_buffer[0]=int_to_char(c);
 	radio.write(&tx_buffer,sizeof(tx_buffer));
 	c++;
-	//radio.startListening();
-	//radio.powerDown();
 
-	// turn off leds
-	//vTaskDelay(pdMS_TO_TICKS(1000));
-	//write_byte_pcf(0xff);
 }
 
 
@@ -106,10 +92,9 @@ void election_timer(void *pvParameters){
 
 }
 
-void test_Task(void *pvParameters){
+void LR_task (void *pvParameters){
 
 	printf("some init\n");
-
 
 	radio.openReadingPipe(1, address);
 	while(1){
@@ -153,7 +138,7 @@ void test_Task(void *pvParameters){
 extern "C" void user_init(void) {
 
 	setup_nrf();
-	xTaskCreate(test_Task,"testing",1000, (void*)&address1 ,2,NULL);
-	xTaskCreate(election_timer, "election timer",1000,(void*)&address1,3,NULL);
+	xTaskCreate(LR_task,"Listen and react task",1000, (void*)&address1 ,2,NULL);
+	xTaskCreate(election_timer, "Election timer",1000,(void*)&address1,3,NULL);
 
 }
