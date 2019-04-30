@@ -115,6 +115,8 @@ void reset_radio(){
 }
 
 void election_timer(void *pvParameters){
+	//TODO Figure out how to reset timer on command
+	//TODO Implement first real election
 	while(1){
 		int r = rand() % 20;
 		vTaskDelay(pdMS_TO_TICKS(5000+r*100));
@@ -124,9 +126,7 @@ void election_timer(void *pvParameters){
 }
 
 void LR_task (void *pvParameters){
-
-	printf("some init\n");
-
+	printf("LR_task init");
 	radio.openReadingPipe(1, address);
 	while(1){
 
