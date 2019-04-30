@@ -24,7 +24,7 @@ static char rx_data[rx_size];
 #define PUB_MSG_LEN 16
 
 #define tx_size		32
-static char tx_buffer[tx_size] = "     HELLO" ;
+static char tx_buffer[tx_size] = "eeeeeeeeeeeeeeeeee" ;
 static bool hastoSend = false;
 
 bool isLeader = false;
@@ -61,15 +61,41 @@ static char * get_my_id(void) {
 	return my_id;
 }
 
-	const char* arr = get_my_id();
-	const char my_addr[] = {arr[8],arr[9],arr[10],arr[11]};
 
 
+	int len(const char *arr){
+		return sizeof(arr)/sizeof(arr[0]);
+	}
+
+	char* substr(const char *src, int m, int n)
+	{
+	        int len = n - m;
+	        char *dest = (char*)malloc(sizeof(char) * (len + 1));
+	        int i;
+	        for (i = m; i < n && (*src != '\0'); i++)
+	        {
+	                *dest = *(src + i);
+	                dest++;
+	        }
+	        *dest = '\0';
+	        return dest - len;
+	}
+
+	char* arr = get_my_id();
+	char* my_addr = {substr(arr,11,12)};
+
+bool relevantData(char* data){
+	//Check if dest address is F(broadcast) or my_addr
+	return (strcmp(substr(data,1,2),"F") == 0 or strcmp(substr(data,1,2),my_addr) == 0);
+}
 
 // transmit data
 void transmit_nrf24() {
-	//TODO payload and dest address handling
-	strcpy(tx_buffer,my_addr);
+	//TODO payload handling
+	strcpy((tx_buffer)+0,my_addr); //Sender address
+	strcpy((tx_buffer)+1,"F"); //Destination address
+	strcpy((tx_buffer)+2,"PPPPPP"); //Payload is limited to 6 extra ints
+
 	radio.write(&tx_buffer,sizeof(tx_buffer));
 
 }
@@ -111,18 +137,19 @@ void LR_task (void *pvParameters){
 
 			radio.read(&rx_data, sizeof(rx_data));
 
-					printf("Received message: %c\n", rx_data[0]);
-					//hastoSend = true;
-					//printf("%d\n",rx_data[0]);
-					printf(rx_data);
-					printf("\n");
-					//int someint = *((int*)pvParameters);
+					if (relevantData(rx_data)){
+						printf("Received message: %c\n", rx_data[0]);
+						//hastoSend = true;
+						//printf("%d\n",rx_data[0]);
+						printf(rx_data);
+						printf("\n");
+						//int someint = *((int*)pvParameters);
 
-					// turn on led1
-					write_byte_pcf(led1);
-					vTaskDelay(pdMS_TO_TICKS(200));
-					write_byte_pcf(0xff);
-
+						// turn on led1
+						write_byte_pcf(led1);
+						vTaskDelay(pdMS_TO_TICKS(200));
+						write_byte_pcf(0xff);
+					}
 
 		}else{
 				if (hastoSend){

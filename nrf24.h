@@ -61,7 +61,7 @@ static inline void setup_nrf() {
 	// radio configuration
 	radio.begin();
 	radio.setChannel(channel);
-	radio.setAutoAck(true);
+	radio.setAutoAck(false);
 
 
 }
