@@ -138,12 +138,9 @@ void LR_task (void *pvParameters){
 			radio.read(&rx_data, sizeof(rx_data));
 
 					if (relevantData(rx_data)){
-						printf("Received message: %c\n", rx_data[0]);
-						//hastoSend = true;
-						//printf("%d\n",rx_data[0]);
+						printf("Received message: ");
 						printf(rx_data);
 						printf("\n");
-						//int someint = *((int*)pvParameters);
 
 						// turn on led1
 						write_byte_pcf(led1);
@@ -157,7 +154,6 @@ void LR_task (void *pvParameters){
 					radio.openWritingPipe(address);
 					radio.stopListening();
 					transmit_nrf24();
-					radio.printDetails();
 					hastoSend = false;
 					radio.openReadingPipe(1, address);
 
