@@ -27,9 +27,20 @@ static char rx_data[rx_size];
 static char tx_buffer[tx_size] = "eeeeeeeeeeeeeeeeee" ;
 static bool hastoSend = false;
 
+
+TaskHandle_t xHandle = NULL;
+void reset_election_timer();
+bool seenDevice(char d);
+
+int devc = 0;
+char devs[10] = {0,0,0,0,0,0,0,0,0,0};
+
+// Raft variables
 bool isLeader = false;
 bool isFollower = true;
 bool isCandidate = false;
+
+int electionCount = 0;
 
 char int_to_char(int i){
 	return i+48;
@@ -94,7 +105,9 @@ void transmit_nrf24() {
 	//TODO payload handling
 	strcpy((tx_buffer)+0,my_addr); //Sender address
 	strcpy((tx_buffer)+1,"F"); //Destination address
-	strcpy((tx_buffer)+2,"PPPPPP"); //Payload is limited to 6 extra ints
+	//H means heartbeat timer reset and data update
+	//V is for voting
+	strcpy((tx_buffer)+2,"VPPPPP"); //Payload is limited to 6 extra ints
 
 	radio.write(&tx_buffer,sizeof(tx_buffer));
 
@@ -120,27 +133,54 @@ void election_timer(void *pvParameters){
 	while(1){
 		int r = rand() % 20;
 		vTaskDelay(pdMS_TO_TICKS(5000+r*100));
-			hastoSend=true;
+		hastoSend=true;
+		electionCount++;
+		isCandidate = true;
 	}
 
 }
 
 void LR_task (void *pvParameters){
-	printf("LR_task init");
+	printf("LR_task init\n");
 	radio.openReadingPipe(1, address);
 	while(1){
-
-
-
 		radio.startListening();
 		if (radio.available()) {
 
 			radio.read(&rx_data, sizeof(rx_data));
 
+					char* sender = substr(rx_data,0,1);
+					//TODO Check if device is a new device not yet seen
+					if(seenDevice(sender[0])){
+						printf("device already seen before\n");
+						printf("current devices %d\n",devc);
+
+
+					}else{
+						devs[devc]=(int)sender[0];
+						devc++;
+					}
+
 					if (relevantData(rx_data)){
 						printf("Received message: ");
 						printf(rx_data);
 						printf("\n");
+
+						char* type = substr(rx_data,2,3);
+
+						//TODO Check different kinds of messages
+						switch ((int)type[0]){
+							case ((int)'H'):
+							reset_election_timer();
+							//TODO Update data + checks if it's sent by the leader
+							break;
+							case ((int)'V'):
+							//TODO handle incoming vote
+							break;
+							default:
+								printf("unknown message type!\n");
+								break;
+						}
 
 						// turn on led1
 						write_byte_pcf(led1);
@@ -163,11 +203,33 @@ void LR_task (void *pvParameters){
 	}
 
 }
+void reset_election_timer(){
+	printf("Resetting election timer\n");
+	if (xHandle != NULL){
+		vTaskDelete(xHandle);
+		xTaskCreate(election_timer, "Election timer",1000,NULL,3,&xHandle);
+	}
+}
+
+bool seenDevice(char d){
+	int k; //TODO fix bug
+	int ld = len(devs);
+	printf("%d length of devs\n",ld);
+	for(k = 0;k++;k<ld){
+		printf("%d == %d\n",(int)d,devs[k]);
+		if ((int)d == devs[k]){
+			return true;
+		}
+	}
+	return false;
+}
 
 extern "C" void user_init(void) {
 
 	setup_nrf();
 	xTaskCreate(LR_task,"Listen and react task",1000, NULL ,2,NULL);
-	xTaskCreate(election_timer, "Election timer",1000,NULL,3,NULL);
+	xTaskCreate(election_timer, "Election timer",1000,NULL,3,&xHandle);
+	reset_election_timer();
+
 
 }
