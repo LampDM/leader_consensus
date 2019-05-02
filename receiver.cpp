@@ -31,10 +31,13 @@ static bool hastoSend = false;
 TaskHandle_t xHandle = NULL;
 void reset_election_timer();
 bool seenDevice(char d);
+void removeInactiveDevs();
+void addDevice(char d);
+void printDevices();
 
-int devc = 0;
-char devs[10] = {0,0,0,0,0,0,0,0,0,0};
-
+char devs[10] = {'X','X','X','X','X','X','X','X','X','X'};
+signed int devsSeen[10] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
+int devc = 1;
 // Raft variables
 bool isLeader = false;
 bool isFollower = true;
@@ -150,16 +153,15 @@ void LR_task (void *pvParameters){
 			radio.read(&rx_data, sizeof(rx_data));
 
 					char* sender = substr(rx_data,0,1);
-					//TODO Check if device is a new device not yet seen
-					if(seenDevice(sender[0])){
-						printf("device already seen before\n");
-						printf("current devices %d\n",devc);
 
-
-					}else{
-						devs[devc]=(int)sender[0];
-						devc++;
+					// Checks if a new device entered the network
+					if(! seenDevice(sender[0])){
+						addDevice((int)(sender[0]));
 					}
+					removeInactiveDevs();
+
+					//For debugging purposes
+					printDevices();
 
 					if (relevantData(rx_data)){
 						printf("Received message: ");
@@ -212,16 +214,52 @@ void reset_election_timer(){
 }
 
 bool seenDevice(char d){
-	int k; //TODO fix bug
+	int k;
 	int ld = len(devs);
-	printf("%d length of devs\n",ld);
-	for(k = 0;k++;k<ld){
-		printf("%d == %d\n",(int)d,devs[k]);
+	for(k = 0;k<ld;k++){
 		if ((int)d == devs[k]){
+			devsSeen[k]=electionCount;
 			return true;
 		}
 	}
 	return false;
+}
+
+void removeInactiveDevs(){
+	int k;
+	int ld = len(devs);
+	for(k = 0;k<ld;k++){
+		if (devsSeen[k]==-1){continue;}
+		if(devsSeen[k]<electionCount-5){
+			devs[k]='X';
+			devsSeen[k]=-1;
+			devc--;
+		}
+	}
+}
+
+void addDevice(char d){
+	int k;
+	int ld = len(devs);
+	for(k = 0;k<ld;k++){
+		if((int)devs[k] == (int)'X'){
+			devs[k]=d;
+			devsSeen[k]=electionCount;
+			devc++;
+			break;
+		}
+	}
+}
+
+void printDevices(){
+	printf("devc %d\n",devc);
+	printf("Device table:\n");
+	int k;
+	int ld = len(devs);
+	for(k = 0;k<ld;k++){
+		if(devsSeen[k]==-1){continue;}
+		printf("dev %c lastseen %d \n",devs[k],devsSeen[k]);
+	}
 }
 
 extern "C" void user_init(void) {
