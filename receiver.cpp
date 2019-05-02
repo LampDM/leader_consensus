@@ -25,7 +25,8 @@ static char rx_data[rx_size];
 
 #define tx_size		32
 static char tx_buffer[tx_size] = "eeeeeeeeeeeeeeeeee" ;
-static bool hastoSend = false;
+bool hastoSend = false;
+bool hastoVote = false;
 
 
 TaskHandle_t xHandle = NULL;
@@ -34,21 +35,19 @@ bool seenDevice(char d);
 void removeInactiveDevs();
 void addDevice(char d);
 void printDevices();
+void changeRole(int r);
+int votes = 0;
 
+// Device data table
 char devs[10] = {'X','X','X','X','X','X','X','X','X','X'};
 signed int devsSeen[10] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
 int devc = 1;
+
 // Raft variables
 bool isLeader = false;
 bool isFollower = true;
 bool isCandidate = false;
-
-int electionCount = 0;
-
-char int_to_char(int i){
-	return i+48;
-}
-
+int termCount = 0;
 
 static char * get_my_id(void) {
 	// Use MAC address for Station as unique ID
@@ -74,8 +73,6 @@ static char * get_my_id(void) {
 	my_id_done = true;
 	return my_id;
 }
-
-
 
 	int len(const char *arr){
 		return sizeof(arr)/sizeof(arr[0]);
@@ -103,20 +100,6 @@ bool relevantData(char* data){
 	return (strcmp(substr(data,1,2),"F") == 0 or strcmp(substr(data,1,2),my_addr) == 0);
 }
 
-// transmit data
-void transmit_nrf24() {
-	//TODO payload handling
-	strcpy((tx_buffer)+0,my_addr); //Sender address
-	strcpy((tx_buffer)+1,"F"); //Destination address
-	//H means heartbeat timer reset and data update
-	//V is for voting
-	strcpy((tx_buffer)+2,"VPPPPP"); //Payload is limited to 6 extra ints
-
-	radio.write(&tx_buffer,sizeof(tx_buffer));
-
-}
-
-
 void reset_radio(){
 	//Shut down and reset radio here
 	radio.stopListening();
@@ -131,15 +114,52 @@ void reset_radio(){
 }
 
 void election_timer(void *pvParameters){
-	//TODO Figure out how to reset timer on command
 	//TODO Implement first real election
 	while(1){
 		int r = rand() % 20;
 		vTaskDelay(pdMS_TO_TICKS(5000+r*100));
+		votes = 0;
 		hastoSend=true;
-		electionCount++;
-		isCandidate = true;
+		termCount++;
+
+		//Become a candidate
+		changeRole(1);
+		votes++;
 	}
+
+}
+
+// transmit data
+void transmit_nrf24() {
+
+	strcpy((tx_buffer)+0,my_addr); //Sender address
+	if (isFollower){
+		if(hastoVote){
+			//Vote here
+		}
+	}else
+	if (isCandidate){
+		if(hastoVote){
+			//On candidate creation they vote for themselves
+			hastoVote=false;
+		}
+		else{
+			//Broadcast it's time to vote to everyone
+			strcpy((tx_buffer)+1,"F");
+			strcpy((tx_buffer)+2,"EPPPPP"); //Payload is limited to 6 extra ints
+		}
+
+	}else
+	if (isLeader){
+
+	}
+
+	strcpy((tx_buffer)+1,"F"); //Destination address
+	//H means heartbeat timer reset and data update
+	//V is for voting
+	strcpy((tx_buffer)+2,"VPPPPP"); //Payload is limited to 6 extra ints
+
+	radio.write(&tx_buffer,sizeof(tx_buffer));
 
 }
 
@@ -147,6 +167,17 @@ void LR_task (void *pvParameters){
 	printf("LR_task init\n");
 	radio.openReadingPipe(1, address);
 	while(1){
+
+		if( (devc/2)<votes ){
+			//Become the leader if majority is recieved
+			changeRole(2);
+			votes=0;
+		}
+
+
+
+
+
 		radio.startListening();
 		if (radio.available()) {
 
@@ -174,10 +205,18 @@ void LR_task (void *pvParameters){
 						switch ((int)type[0]){
 							case ((int)'H'):
 							reset_election_timer();
+							//Become follower
+							changeRole(0);
+							votes = 0;
+
 							//TODO Update data + checks if it's sent by the leader
 							break;
 							case ((int)'V'):
-							//TODO handle incoming vote
+								votes++;
+							break;
+							case ((int)'E'):
+								hastoSend=true;
+								hastoVote=true;
 							break;
 							default:
 								printf("unknown message type!\n");
@@ -198,12 +237,9 @@ void LR_task (void *pvParameters){
 					transmit_nrf24();
 					hastoSend = false;
 					radio.openReadingPipe(1, address);
-
 				}
 		}
-
 	}
-
 }
 void reset_election_timer(){
 	printf("Resetting election timer\n");
@@ -218,7 +254,7 @@ bool seenDevice(char d){
 	int ld = len(devs);
 	for(k = 0;k<ld;k++){
 		if ((int)d == devs[k]){
-			devsSeen[k]=electionCount;
+			devsSeen[k]=termCount;
 			return true;
 		}
 	}
@@ -230,7 +266,7 @@ void removeInactiveDevs(){
 	int ld = len(devs);
 	for(k = 0;k<ld;k++){
 		if (devsSeen[k]==-1){continue;}
-		if(devsSeen[k]<electionCount-5){
+		if(devsSeen[k]<termCount-5){
 			devs[k]='X';
 			devsSeen[k]=-1;
 			devc--;
@@ -244,7 +280,7 @@ void addDevice(char d){
 	for(k = 0;k<ld;k++){
 		if((int)devs[k] == (int)'X'){
 			devs[k]=d;
-			devsSeen[k]=electionCount;
+			devsSeen[k]=termCount;
 			devc++;
 			break;
 		}
@@ -259,6 +295,30 @@ void printDevices(){
 	for(k = 0;k<ld;k++){
 		if(devsSeen[k]==-1){continue;}
 		printf("dev %c lastseen %d \n",devs[k],devsSeen[k]);
+	}
+}
+
+void changeRole(int r){
+	isFollower=false;
+	isCandidate=false;
+	isLeader=false;
+	write_byte_pcf(0xff);
+	switch(r){
+		case 0:
+		isFollower=true;
+		write_byte_pcf(0b11110111);
+		break;
+
+		case 1:
+		isCandidate=true;
+		write_byte_pcf(0b11110011);
+		break;
+
+		case 2:
+		isLeader=true;
+		printf("LEADER!\n");
+		write_byte_pcf(0b11110001);
+		break;
 	}
 }
 
