@@ -36,6 +36,7 @@ void removeInactiveDevs();
 void addDevice(char d);
 void printDevices();
 void changeRole(int r);
+void sendMsg(char* addr,char* type, char* payload);
 int votes = 0;
 
 // Device data table
@@ -48,6 +49,7 @@ bool isLeader = false;
 bool isFollower = true;
 bool isCandidate = false;
 int termCount = 0;
+int sendInterval = 5000;
 
 static char * get_my_id(void) {
 	// Use MAC address for Station as unique ID
@@ -74,11 +76,11 @@ static char * get_my_id(void) {
 	return my_id;
 }
 
-	int len(const char *arr){
+int len(const char *arr){
 		return sizeof(arr)/sizeof(arr[0]);
 	}
 
-	char* substr(const char *src, int m, int n)
+char* substr(const char *src, int m, int n)
 	{
 	        int len = n - m;
 	        char *dest = (char*)malloc(sizeof(char) * (len + 1));
@@ -114,53 +116,27 @@ void reset_radio(){
 }
 
 void election_timer(void *pvParameters){
-	//TODO Implement first real election
 	while(1){
 		int r = rand() % 20;
-		vTaskDelay(pdMS_TO_TICKS(5000+r*100));
+		vTaskDelay(pdMS_TO_TICKS(sendInterval+r*100));
 		votes = 0;
 		hastoSend=true;
 		termCount++;
-
-		//Become a candidate
-		changeRole(1);
-		votes++;
 	}
 
 }
 
-// transmit data
-void transmit_nrf24() {
-
-	strcpy((tx_buffer)+0,my_addr); //Sender address
-	if (isFollower){
-		if(hastoVote){
-			//Vote here
-		}
-	}else
-	if (isCandidate){
-		if(hastoVote){
-			//On candidate creation they vote for themselves
-			hastoVote=false;
-		}
-		else{
-			//Broadcast it's time to vote to everyone
-			strcpy((tx_buffer)+1,"F");
-			strcpy((tx_buffer)+2,"EPPPPP"); //Payload is limited to 6 extra ints
-		}
-
-	}else
-	if (isLeader){
-
-	}
-
-	strcpy((tx_buffer)+1,"F"); //Destination address
-	//H means heartbeat timer reset and data update
-	//V is for voting
-	strcpy((tx_buffer)+2,"VPPPPP"); //Payload is limited to 6 extra ints
-
+void sendMsg(char* addr,char* type, char* payload){
+	reset_radio();
+	radio.openWritingPipe(address);
+	radio.stopListening();
+	//Send message here
+	strcpy((tx_buffer)+0,my_addr);
+	strcpy((tx_buffer)+1,addr);
+	strcpy((tx_buffer)+2,type);
+	strcpy((tx_buffer)+3,payload);
 	radio.write(&tx_buffer,sizeof(tx_buffer));
-
+	radio.openReadingPipe(1, address);
 }
 
 void LR_task (void *pvParameters){
@@ -172,15 +148,12 @@ void LR_task (void *pvParameters){
 			//Become the leader if majority is recieved
 			changeRole(2);
 			votes=0;
+			sendMsg("F","H","ppppp");
 		}
-
-
-
-
 
 		radio.startListening();
 		if (radio.available()) {
-
+			printf("before print devices\n");
 			radio.read(&rx_data, sizeof(rx_data));
 
 					char* sender = substr(rx_data,0,1);
@@ -190,7 +163,12 @@ void LR_task (void *pvParameters){
 						addDevice((int)(sender[0]));
 					}
 					removeInactiveDevs();
-
+					//TODO fix bug where if from 2 machines we go from 1 the 1 is a forever candidate
+					//TODO implement anti-gridlock mechanism if all nodes become candidates
+					//TODO fix bouncing leader bug from 1 node to another and back again
+					//TODO why is printDevices() not working unless node is follower,
+					//because print only goes on if the device recieves some signal
+					//make a task for device housekeeping?
 					//For debugging purposes
 					printDevices();
 
@@ -198,49 +176,66 @@ void LR_task (void *pvParameters){
 						printf("Received message: ");
 						printf(rx_data);
 						printf("\n");
-
 						char* type = substr(rx_data,2,3);
 
-						//TODO Check different kinds of messages
 						switch ((int)type[0]){
+
 							case ((int)'H'):
 							reset_election_timer();
+							printf("Heartbeat recieved!\n");
 							//Become follower
 							changeRole(0);
 							votes = 0;
-
-							//TODO Update data + checks if it's sent by the leader
 							break;
+
 							case ((int)'V'):
-								votes++;
+								if(isCandidate){
+									votes++;
+									printf("Recieved vote!\n");
+								}
 							break;
 							case ((int)'E'):
-								hastoSend=true;
-								hastoVote=true;
+								//Do direct voting here
+								if (isFollower){
+									//TODO Decide who is a suitable candidate
+										sendMsg(sender,"V","PPPPP");
+								}else
+								if(isLeader){
+									sendMsg(sender,"H","PPPPP");
+								}
 							break;
+
 							default:
 								printf("unknown message type!\n");
 								break;
 						}
 
-						// turn on led1
-						write_byte_pcf(led1);
-						vTaskDelay(pdMS_TO_TICKS(200));
-						write_byte_pcf(0xff);
 					}
 
 		}else{
 				if (hastoSend){
-					reset_radio();
-					radio.openWritingPipe(address);
-					radio.stopListening();
-					transmit_nrf24();
+
 					hastoSend = false;
-					radio.openReadingPipe(1, address);
+
+					if(isLeader){
+						sendMsg("F","H","ppppp");
+					}else
+					if(isFollower){
+						//Become a candidate
+						changeRole(1);
+						votes++;
+						sendMsg("F","E","ppppp");
+					}else
+					if(isCandidate){
+						sendMsg("F","E","ppppp");
+						votes=0;
+						votes++;
+					}
 				}
 		}
 	}
 }
+
 void reset_election_timer(){
 	printf("Resetting election timer\n");
 	if (xHandle != NULL){
@@ -302,6 +297,7 @@ void changeRole(int r){
 	isFollower=false;
 	isCandidate=false;
 	isLeader=false;
+	sendInterval=5000;
 	write_byte_pcf(0xff);
 	switch(r){
 		case 0:
@@ -316,7 +312,7 @@ void changeRole(int r){
 
 		case 2:
 		isLeader=true;
-		printf("LEADER!\n");
+		sendInterval=2800;
 		write_byte_pcf(0b11110001);
 		break;
 	}
