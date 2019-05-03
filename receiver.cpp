@@ -163,6 +163,8 @@ void LR_task (void *pvParameters){
 						addDevice((int)(sender[0]));
 					}
 					removeInactiveDevs();
+					//TODO implement one time pad encryption
+					//TODO Most bugs appear to be fixed? Needs more testing.
 					//TODO fix bug where if from 2 machines we go from 1 the 1 is a forever candidate
 					//TODO implement anti-gridlock mechanism if all nodes become candidates
 					//TODO fix bouncing leader bug from 1 node to another and back again
@@ -181,32 +183,39 @@ void LR_task (void *pvParameters){
 						switch ((int)type[0]){
 
 							case ((int)'H'):
-							reset_election_timer();
-							printf("Heartbeat recieved!\n");
-							//Become follower
-							changeRole(0);
-							votes = 0;
-							break;
+								reset_election_timer();
+								printf("Heartbeat recieved!\n");
+
+								//Become follower
+								changeRole(0);
+								votes = 0;
+								sendMsg(sender,"A","ppppp");
+								break;
 
 							case ((int)'V'):
 								if(isCandidate){
 									votes++;
 									printf("Recieved vote!\n");
 								}
-							break;
+								break;
+
 							case ((int)'E'):
 								//Do direct voting here
 								if (isFollower){
 									//TODO Decide who is a suitable candidate
-										sendMsg(sender,"V","PPPPP");
+										sendMsg(sender,"V","ppppp");
 								}else
 								if(isLeader){
 									sendMsg(sender,"H","PPPPP");
 								}
-							break;
+								break;
+
+							case ((int)'A'):
+								printf("recieved heartbeat ACK!\n");
+								break;
 
 							default:
-								printf("unknown message type!\n");
+								printf("Unknown msg!\n");
 								break;
 						}
 
@@ -321,6 +330,7 @@ void changeRole(int r){
 extern "C" void user_init(void) {
 
 	setup_nrf();
+	changeRole(0);
 	xTaskCreate(LR_task,"Listen and react task",1000, NULL ,2,NULL);
 	xTaskCreate(election_timer, "Election timer",1000,NULL,3,&xHandle);
 	reset_election_timer();
