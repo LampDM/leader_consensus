@@ -39,6 +39,17 @@ void changeRole(int r);
 void sendMsg(char* addr,char* type, char* payload);
 int votes = 0;
 
+// One time pad
+char pad[8] = {'A','B','C','D','E','F','G','H'};
+
+int bitXor(int x, int y)
+{
+    int a = x & y;
+    int b = ~x & ~y;
+    int z = ~a & ~b;
+    return z;
+}
+
 // Device data table
 char devs[10] = {'X','X','X','X','X','X','X','X','X','X'};
 signed int devsSeen[10] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
@@ -153,9 +164,9 @@ void LR_task (void *pvParameters){
 
 		radio.startListening();
 		if (radio.available()) {
-			printf("before print devices\n");
-			radio.read(&rx_data, sizeof(rx_data));
 
+			radio.read(&rx_data, sizeof(rx_data));
+					//char* decrypted_rx_data =
 					char* sender = substr(rx_data,0,1);
 
 					// Checks if a new device entered the network
@@ -163,6 +174,7 @@ void LR_task (void *pvParameters){
 						addDevice((int)(sender[0]));
 					}
 					removeInactiveDevs();
+					//TODO stop being candidate after a while
 					//TODO implement one time pad encryption
 					//TODO Most bugs appear to be fixed? Needs more testing.
 					//TODO fix bug where if from 2 machines we go from 1 the 1 is a forever candidate
