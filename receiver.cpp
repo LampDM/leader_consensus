@@ -37,10 +37,11 @@ void addDevice(char d);
 void printDevices();
 void changeRole(int r);
 void sendMsg(char* addr,char* type, char* payload);
+int len(const char *arr);
 int votes = 0;
 
 // One time pad
-char pad[8] = {'A','B','C','D','E','F','G','H'};
+char pad[8] = {'k','l','o','p','m','o','r','x'};
 
 int bitXor(int x, int y)
 {
@@ -49,6 +50,18 @@ int bitXor(int x, int y)
     int z = ~a & ~b;
     return z;
 }
+
+void crypt(char* msgp){
+	int i;
+	char k;
+	for(i=0;i<8;i++){
+		k = *(msgp+i);
+		*(msgp+i) = (char) bitXor((int)k,(int)pad[i]);
+	}
+
+}
+
+
 
 // Device data table
 char devs[10] = {'X','X','X','X','X','X','X','X','X','X'};
@@ -146,12 +159,15 @@ void sendMsg(char* addr,char* type, char* payload){
 	strcpy((tx_buffer)+1,addr);
 	strcpy((tx_buffer)+2,type);
 	strcpy((tx_buffer)+3,payload);
+	crypt((char *)&tx_buffer);
 	radio.write(&tx_buffer,sizeof(tx_buffer));
 	radio.openReadingPipe(1, address);
 }
 
 void LR_task (void *pvParameters){
 	printf("LR_task init\n");
+	sendMsg("F","A","HELLO");
+
 	radio.openReadingPipe(1, address);
 	while(1){
 
@@ -166,7 +182,8 @@ void LR_task (void *pvParameters){
 		if (radio.available()) {
 
 			radio.read(&rx_data, sizeof(rx_data));
-					//char* decrypted_rx_data =
+					crypt((char *)&rx_data);
+
 					char* sender = substr(rx_data,0,1);
 
 					// Checks if a new device entered the network
@@ -175,7 +192,7 @@ void LR_task (void *pvParameters){
 					}
 					removeInactiveDevs();
 					//TODO stop being candidate after a while
-					//TODO implement one time pad encryption
+					//TODO device table shizzle fix
 					//TODO Most bugs appear to be fixed? Needs more testing.
 					//TODO fix bug where if from 2 machines we go from 1 the 1 is a forever candidate
 					//TODO implement anti-gridlock mechanism if all nodes become candidates
