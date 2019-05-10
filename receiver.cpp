@@ -141,8 +141,8 @@ void reset_radio(){
 
 void election_timer(void *pvParameters){
 	while(1){
-		int r = rand() % 20;
-		vTaskDelay(pdMS_TO_TICKS(sendInterval+r*100));
+		int r = rand() % 3;
+		vTaskDelay(pdMS_TO_TICKS(sendInterval+r*1000));
 		votes = 0;
 		hastoSend=true;
 		termCount++;
