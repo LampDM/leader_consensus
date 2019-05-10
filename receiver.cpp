@@ -146,9 +146,6 @@ void election_timer(void *pvParameters){
 		votes = 0;
 		hastoSend=true;
 		termCount++;
-		if (isCandidate){
-			changeRole(0);
-		}
 	}
 
 }
@@ -268,9 +265,9 @@ void LR_task (void *pvParameters){
 						sendMsg("F","E","ppppp");
 					}else
 					if(isCandidate){
-						sendMsg("F","E","ppppp");
+						//Become follower again
+						changeRole(0)
 						votes=0;
-						votes++;
 					}
 				}
 		}
