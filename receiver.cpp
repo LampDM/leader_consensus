@@ -266,7 +266,7 @@ void LR_task (void *pvParameters){
 					}else
 					if(isCandidate){
 						//Become follower again
-						changeRole(0)
+						changeRole(0);
 						votes=0;
 					}
 				}
