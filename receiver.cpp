@@ -146,6 +146,9 @@ void election_timer(void *pvParameters){
 		votes = 0;
 		hastoSend=true;
 		termCount++;
+		if (isCandidate){
+			changeRole(0);
+		}
 	}
 
 }
