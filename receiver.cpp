@@ -73,7 +73,6 @@ bool isLeader = false;
 bool isFollower = true;
 bool isCandidate = false;
 int termCount = 0;
-int sendInterval = 5000;
 
 static char * get_my_id(void) {
 	// Use MAC address for Station as unique ID
@@ -140,9 +139,15 @@ void reset_radio(){
 }
 
 void election_timer(void *pvParameters){
+
 	while(1){
-		int r = rand() % 3;
-		vTaskDelay(pdMS_TO_TICKS(sendInterval+r*1000));
+		if(isLeader){
+			vTaskDelay(pdMS_TO_TICKS(1000));
+		}else{
+			srand((int)my_addr + termCount);
+			int r = rand() % 30;
+			vTaskDelay(pdMS_TO_TICKS(2000+r*100));
+		}
 		votes = 0;
 		hastoSend=true;
 		termCount++;
@@ -191,7 +196,6 @@ void LR_task (void *pvParameters){
 						addDevice((int)(sender[0]));
 					}
 					removeInactiveDevs();
-					//TODO stop being candidate after a while
 					//TODO device table shizzle fix
 					//TODO Most bugs appear to be fixed? Needs more testing.
 					//TODO fix bug where if from 2 machines we go from 1 the 1 is a forever candidate
@@ -335,7 +339,6 @@ void changeRole(int r){
 	isFollower=false;
 	isCandidate=false;
 	isLeader=false;
-	sendInterval=5000;
 	write_byte_pcf(0xff);
 	switch(r){
 		case 0:
@@ -350,7 +353,6 @@ void changeRole(int r){
 
 		case 2:
 		isLeader=true;
-		sendInterval=2800;
 		write_byte_pcf(0b11110001);
 		break;
 	}
