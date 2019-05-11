@@ -61,8 +61,6 @@ void crypt(char* msgp){
 
 }
 
-
-
 // Device data table
 char devs[10] = {'X','X','X','X','X','X','X','X','X','X'};
 signed int devsSeen[10] = {-1,-1,-1,-1,-1,-1,-1,-1,-1,-1};
@@ -195,15 +193,9 @@ void LR_task (void *pvParameters){
 					if(! seenDevice(sender[0])){
 						addDevice((int)(sender[0]));
 					}
+
 					removeInactiveDevs();
-					//TODO device table shizzle fix
 					//TODO Most bugs appear to be fixed? Needs more testing.
-					//TODO fix bug where if from 2 machines we go from 1 the 1 is a forever candidate
-					//TODO implement anti-gridlock mechanism if all nodes become candidates
-					//TODO fix bouncing leader bug from 1 node to another and back again
-					//TODO why is printDevices() not working unless node is follower,
-					//because print only goes on if the device recieves some signal
-					//make a task for device housekeeping?
 					//For debugging purposes
 					printDevices();
 
@@ -222,7 +214,9 @@ void LR_task (void *pvParameters){
 								//Become follower
 								changeRole(0);
 								votes = 0;
-								sendMsg(sender,"A","ppppp");
+								//At the same time it serves so all the other devices can update their tables
+								sendMsg("F","A","ppppp");
+								termCount++;
 								break;
 
 							case ((int)'V'):
@@ -235,7 +229,6 @@ void LR_task (void *pvParameters){
 							case ((int)'E'):
 								//Do direct voting here
 								if (isFollower){
-									//TODO Decide who is a suitable candidate
 										sendMsg(sender,"V","ppppp");
 								}else
 								if(isLeader){
@@ -244,7 +237,11 @@ void LR_task (void *pvParameters){
 								break;
 
 							case ((int)'A'):
-								printf("recieved heartbeat ACK!\n");
+								if(isLeader){
+									 printf("recieved heartbeat ACK!\n");
+								}else{
+									printf("heard heartbeat ACK!\n");
+								}
 								break;
 
 							default:
@@ -256,6 +253,9 @@ void LR_task (void *pvParameters){
 
 		}else{
 				if (hastoSend){
+
+					removeInactiveDevs();
+					printDevices();
 
 					hastoSend = false;
 
