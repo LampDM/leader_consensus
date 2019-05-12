@@ -58,49 +58,29 @@ The article covers the work done in the scope of the seminar assignment as part 
 \end{abstract}
 
 \section{Uvod}
-TODO tukaj povedat ključne cilje projekta 
-
-Cilj projekta je bila implementacija algoritma za določanje vodje v gruči naprav v brezžičnem omrežju.
-
-Razvoj in testiranje sva opravljala na ploščici z WEMOS D1 mini kontrolerjem in modulom za komuniciranje nRF24L01. Na ploščici so bili nameščeni še drugi moduli, ki pa jih v obsegu najinega razvoja nisva uporabila. Modul nRF24L01 sprejema in oddaja na frekvenci 2.4GHz z maksimalno hitrostjo prenosa do 2Mbps. Majhne velikosti sporočil uporabljenih v komunikaciji in glede na to relativno velika podatkovna pretočnost sta omogočala hiter razvoj in testiranje ter skalabilnost.
-
-Za določanje vodje v gruči sva implementirala protokol RAFT. Programska koda je napisana v jeziku C++ s knjižnico za upravljanje s komunikacijskim modulom nRF24L01.
+Cilj projekta je bila implementacija algoritma za določanje vodje gruče brezžičnih naprav. Razvoj in testiranje sva opravljala na ploščici z WEMOS D1 mini kontrolerjem in modulom za komuniciranje nRF24L01. Na ploščici so bili nameščeni še drugi moduli, ki pa jih v obsegu najinega razvoja nisva uporabila. Modul nRF24L01 sprejema in oddaja na frekvenci 2.4GHz z maksimalno hitrostjo prenosa do 2Mbps. Majhne velikosti sporočil uporabljenih v komunikaciji in glede na to relativno velika podatkovna pretočnost sta omogočala hiter razvoj in testiranje ter skalabilnost. Za določanje vodje v gruči sva implementirala protokol RAFT. Programska koda je napisana v jeziku C++ s knjižnico za upravljanje s komunikacijskim modulom nRF24L01.
 
 \section{Splošna struktura}
-splošen opis kode
+Odločila sva se, da ne bova imela več kot ene verzije kode in da se bo vsaka naprava lahko priključila na najino omrežje. Posledično je koda že sama po sebi zelo univerzalna, saj vsebuje vse kar napravi omogoča, da opravlja vse vloge RAFT protokola. Osnoven tok dogodkov sestoji iz aktivacije naprave in pogona \textit{LR\_task} in \textit{election\_task} opravil. \textit{LR\_task} opravilo je namenjeno poslušanju aktivnosti na omrežju, ter hkrati pošiljanju sporočil, ko je to potrebno. \textit{Election\_task} je za razliko samo časovnik, ki napravi sporoči, kdaj naj privzeto pošlje sporočilo. Za tako zasnovo sva se odločila, ker je posledica tega večja predvidljivost in determinizem samega programa, saj lahko samo eno opravilo pošilja oziroma sprejema.
 
-Glavni implemetacijski nalogi sta bili implementacija RAFT algoritma ter pošiljanje in prejemanje podatkov. Podrobnosti RAFT protokola in implementacije so opisane v temu namenjenemu poglavju. 
-
-RAFT protokol temelji na robustni distribuirani strukturi volitev.
+\section{Pošiljanje in poslušanje}
+Knjižnica za upravljanje z nRF24LO1 modulom predvideva za prenos podatkov uporabo programskih abstrakcij z imenom cevi (eng. pipe), ki pa so najin projekt v veliki meri ovirale, saj je imeti hkrati odprto cev za poslušanje in branje nemogoče in pa so sploh cevi namenjene neenakopravni komunikaciji torej bolj v statični situaciji master-slave. Posledično se ob vsakem klicu posebne funkcije \textit{sendMsg}, ki je namenjena pošiljanju sporočil radio modul ponovno aktivira in odpre nova pisalna cev. Enako se zgodi ob vsaki novi vrnitvi v zanko poslušanja le, da se tokrat na novo odpre poslušalna cev. Cevi imajo prav tako tudi naslove, ki pa jih prav tako nisva potrebovala in sva ves čas pisala in poslušala na nekem poljubnem privzetem naslovu. 
 
 \subsection{Election task}
-opis taska, čemu služi itd. slikica
+Opravilo ima zelo preprosto zasnovo. Njegova glavna naloga je, da nastavi spremenljivko \textit{hastoSend} na \textit{true} in posledično sproži pošiljanje novega sporočila v glavnem opravilu. Poleg tega na novo nastavi nekaj spremenljivk, ki služijo pri implementaciji RAFT protokola.
 
-Volitve so prvi izmed korakov v iskanju novega vodje gruče v primeru kjer vodja ni določen oziroma je prišlo do izpada trenutnega vodje. Vsaka naprava ima interni naključni časovnik ki sproži signal za začetek volitev. Namen volitev je implicitno sporočanje da vodja gruče v tem času ni določen in iskanje novega vodje gruče.
 \subsection{Listen and react task}
-opis delovanja taska slikica
+Ob vstopu v glavno opravilo naprava vsem ostalim članom sporoči, da se je aktivirala, ter takoj za tem začne poslušalno pisalno zanko. Naprava nato:
+
+\begin{itemize}
+\item Pod pogojem, da je \textit{kandidat} preveri, če je dobila več kot polovico glasov. V tem primeru postane novi vodja.
+\item Začne poslušati in ob primeru, da obstajajo nova sporočila jih prebere ter določi kako se mora odzvati.
+\end{itemize}
+V najslabšem primeru bo naprava zaznala promet, ki pa ni namenjen (namembnost se preveri s funkcijo \textit{relevantData}) njej in si bo s klicem funkcij \textit{seenDevice} in \textit{removeInactiveDevs} posodobila interno tabelo naprav. \\
+
+
 \subsection{Device table}
-kako deluje device table glej funkcije
-
-Tabela naprav je namenjena shranjevanju seznama naprav in stanja naprav v omrežju. Vsaka naprava dodana v omrežje se zapiše v lokalno tabelo naprav in odstrani ob odstranitvi iz omrežja.
-\section{nRF24}
-tukaj povedat kako poteka komunikacija s pomočjo modula:
-bistvo je da se auto acknowledgement paketki ne avtomatsko pošiljajo in konstantno odpiramo pa zapiramo write in listen pipe da doseženo učinek broadcasta
-
-Na ploščici je nameščen modul za komuniciranje nRF24L01. Modul deluje na frekvenci 2.4GHz. Za krmiljenje je na voljo knjižnica v jeziku C.
-
-Modul je deloval zanesljivo na kratkih razdaljah reda velikosti nekaj metrov. Delovanje na večjih razdaljah je možno doseči z uporabo dodatne antene.
-
-Z vidika programske opreme je priložena knjižnica dobro dokumentirana. Največji izziv pri uporabi modula je bilo sočasno prejemanje in oddajanje.
-
-Prvotno sva za prejemanje in oddajanje ustvarila dva taska, kar se je kasneje izkazalo za neučinkovito, ker je prihajalo do zakasnitev in nedostavljenih paketov zaradi nesinhroniziranosti. Kasneje sva izziv rešila z uporabo enega taska, ki je ves čas v načinu poslušanja, ki pa se začasno spremeni v način pošiljanja, ko želimo poslati sporočilo. S tem pristopom sva bistveno zmanjšala število izgubljenih paketov in prihranek na energiji, saj modul v načinu oddajanja porabi več energije.
-
-\section{Raft}
-opis rafta, vključi tudi robne primere ko vodja ni izvoljen ker ni dovolj glasov
-
-RAFT protokol temelji na robustni distribuirani strukturi volitev. Na začetku se naprave v gruči ne zavedajo drugih naprav, niti nimajo določenega vodje. S periodičnimi sporočili si sestavijo tabelo naprav v okolici in določijo vodjo gruče.
-
-RAFT, kot drugi algoritmi za doseganje konsenza uporablja timerje, pri čemer se razlikuje v tem, da ima vsaka naprava naključno določen interval komuniciranja, kar pospeši reševanje konfliktov v algoritmu.
+Tabela naprav je namenjena shranjevanju seznama naprav in stanja naprav v omrežju. Vsaka naprava, ki se omrežju predstavi s poslanim sporočilom se zapiše v lokalno tabelo naprav. Napravo se iz tabele odstrani, ko je njena zadnja aktivnost bila zaznana pred več kot petimi mandati. Velikost tabele sva iz praktičnih razlogov omejila na samo deset različnih naprav, vendar bi v praksi glede na najin način naslavljanja lahko ta imela do $2^{8} - 1$ različnih naprav.
 
 \section{Protokol komunikacij}
 \begin{figure}
@@ -108,8 +88,50 @@ RAFT, kot drugi algoritmi za doseganje konsenza uporablja timerje, pri čemer se
   \caption{Osnovna oblika paketa.}
   \label{fig:paket}
 \end{figure}
-slika paketka, v glavnem je maksimalen payload 8 bajtov na eno komunikacijo zato smo prve 3 rezervirali za naš addressing ostale pa za namišljen payload ki bi ga imeli v realni situaciji.
-prvi bajt je zadnja črka MAC addressa ploščice, ki pošilja. drugi nam pove komu je pošiljka (F za broadcast) namenjena. tretji pa je funkcijski pomen, akcija E za election V za oddat glas A za acknowledge heartbeat H za heartbeat itd.
+Pošiljanje podatkov na radijskem modulu je omejeno na samo 8 bajtov na paket, zato sva pri implementaciji najine dodatne aplikacijske plasti poskušala čim več bajtov nameniti koristnim informacijam, saj bi to bilo v realni situaciji zaželeno. Prvi trije bajti so namenjeni naslavljanju paketkov ter funkcij Raft protokola in sicer: \\
+\begin{itemize}
+\item Prvi bajt je namenjen naslovu pošiljatelja paketka. Ta je pridobljen iz zadnjega ASCII znaka MAC naslova naprave.
+\item Drugi bajt je namenjen naslova prejemnika paketka ("F" je broadcast).
+\item Zadnji bajt identificira RAFT dejanje paketka.
+\end{itemize}
+
+Opis možne Raft vsebine: 
+\begin{itemize}
+\item A (ang. acknowledge) paket služi za potrditev prejema poljubnega sporočila, ter kot tip predstavitvenega paketa.
+\item E (ang. election) paket poziva ostale naprave k glasovanju za novonastalega kandidata, ki je pošiljatelj paketa.
+\item V (ang. vote) paket predstavlja glas privrženca, ki ga ta isti pošlje kandidatu in je odziv na E paket.
+\item H (ang. heartbeat) paket ponastavi časovnik za nove volitve in ga pošlje vodja privržencem. V realnem svetu služi tudi za deljenje informacij med člani skupine (ang. log propagation).
+\end{itemize} 
+
+
+\begin{figure}
+\includegraphics[scale=0.30]{raft_pics/raft1.png}
+\end{figure}
+\begin{figure}
+\includegraphics[scale=0.30]{raft_pics/raft2.png}
+\end{figure}
+\begin{figure}
+\includegraphics[scale=0.30]{raft_pics/raft3.png}
+\end{figure}
+\begin{figure}
+\includegraphics[scale=0.30]{raft_pics/raft4.png}
+\end{figure}
+\begin{figure}
+\includegraphics[scale=0.30]{raft_pics/raft5.png}
+\caption{Shema tipičnega volitvenega cikla.}
+\end{figure}
+
+\section{Raft protokol}
+Raft (Reliable ,Replicated ,Redundant, And Fault-Tolerant) je algoritem za sklepanje soglasja v porazdeljenih sistemih z več vozlišči. Narejen je bil leta 2014 z mislijo, da bo v veliki meri nadomestil starejši in veliko bolj zapleten Paxos algoritem. Omenjeno soglasje Raft doseže s pomočjo izvolitev vodilnega vozlišča. Naprava ima lahko v Raft skupini eno izmed treh vlog: \\
+\begin{itemize}
+\item Vodja (ang. leader)
+\item Privrženec (ang. follower)
+\item Kandidat (ang. candidate)
+\end{itemize}
+Odgovornost vodje je, da privržencem redno pošilja sporočila, da je ta še vedno aktiven (ang. heartbeat). Med tem ima vsak privrženec poljubni časovni interval (navadno med 150 ms - 300 ms), ki mu ob izteku spremeni vlogo v tisto kandidata ter sproži nove volitve. Če privrženec prejme potrditev, da je vodja aktiven pred iztekom časovnega intervala se ta ponastavi. 
+
+
+
 \section{One time pad}
 opis one time pad. zakaj smo si ga izbrali (ker je simple). opis kako bi se dalo razbit vsebino komunikacij. imam samo en stalen ključ, ker bi bilo ponovno izmenjevanje preveč zapleteno gleda na nivo fleksibilnosti, ki ga imamo v našem sistemu wemosov.
 \section{Primeri}
