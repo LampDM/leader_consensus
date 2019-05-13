@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.19 (MiKTeX 2.9.6840 64-bit) (preloaded format=pdflatex 2018.12.18)  13 MAY 2019 01:21
+This is pdfTeX, Version 3.14159265-2.6-1.40.19 (MiKTeX 2.9.6840 64-bit) (preloaded format=pdflatex 2018.12.18)  13 MAY 2019 07:46
 entering extended mode
 **./samplepaper.tex
 (samplepaper.tex
@@ -480,7 +480,7 @@ Underfull \hbox (badness 10000) in paragraph at lines 79--80
  []
 
 [2]
-<packet.png, id=30, 394.47375pt x 63.23625pt>
+<packet.png, id=29, 394.47375pt x 63.23625pt>
 File: packet.png Graphic file (type png)
 <use packet.png>
 Package pdftex.def Info: packet.png  used on input line 87.
@@ -490,27 +490,28 @@ Underfull \hbox (badness 10000) in paragraph at lines 91--92
 
  []
 
-<raft_pics/raft1.png, id=32, 313.9228pt x 292.09125pt>
+[3 <./packet.png>]
+<raft_pics/raft1.png, id=41, 313.9228pt x 292.09125pt>
 File: raft_pics/raft1.png Graphic file (type png)
 <use raft_pics/raft1.png>
 Package pdftex.def Info: raft_pics/raft1.png  used on input line 108.
 (pdftex.def)             Requested size: 94.17755pt x 87.62804pt.
-<raft_pics/raft2.png, id=33, 311.66437pt x 290.58563pt>
+<raft_pics/raft2.png, id=42, 311.66437pt x 290.58563pt>
 File: raft_pics/raft2.png Graphic file (type png)
 <use raft_pics/raft2.png>
 Package pdftex.def Info: raft_pics/raft2.png  used on input line 111.
 (pdftex.def)             Requested size: 93.50003pt x 87.17636pt.
-<raft_pics/raft3.png, id=34, 313.9228pt x 295.1025pt>
+<raft_pics/raft3.png, id=43, 313.9228pt x 295.1025pt>
 File: raft_pics/raft3.png Graphic file (type png)
 <use raft_pics/raft3.png>
 Package pdftex.def Info: raft_pics/raft3.png  used on input line 114.
 (pdftex.def)             Requested size: 94.17755pt x 88.53142pt.
-<raft_pics/raft4.png, id=35, 315.42844pt x 295.85532pt>
+<raft_pics/raft4.png, id=44, 315.42844pt x 295.85532pt>
 File: raft_pics/raft4.png Graphic file (type png)
 <use raft_pics/raft4.png>
 Package pdftex.def Info: raft_pics/raft4.png  used on input line 117.
 (pdftex.def)             Requested size: 94.62926pt x 88.75726pt.
-<raft_pics/raft5.png, id=36, 312.41719pt x 292.09125pt>
+<raft_pics/raft5.png, id=45, 312.41719pt x 292.09125pt>
 File: raft_pics/raft5.png Graphic file (type png)
 <use raft_pics/raft5.png>
 Package pdftex.def Info: raft_pics/raft5.png  used on input line 120.
@@ -520,48 +521,58 @@ Underfull \hbox (badness 10000) in paragraph at lines 125--126
 
  []
 
-[3 <./packet.png>] [4 <./raft_pics/raft1.png> <./raft_pics/raft2.png> <./raft_p
-ics/raft3.png> <./raft_pics/raft4.png> <./raft_pics/raft5.png>]
-<no_leader.jpg, id=56, 4015.0pt x 3011.25pt>
+[4 <./raft_pics/raft1.png> <./raft_pics/raft2.png> <./raft_pics/raft3.png>]
+[5 <./raft_pics/raft4.png> <./raft_pics/raft5.png>]
+Underfull \hbox (badness 10000) in paragraph at lines 136--137
+
+ []
+
+[6]
+Underfull \hbox (badness 10000) in paragraph at lines 154--155
+
+ []
+
+[7]
+<no_leader.jpg, id=76, 4015.0pt x 3011.25pt>
 File: no_leader.jpg Graphic file (type jpg)
 <use no_leader.jpg>
-Package pdftex.def Info: no_leader.jpg  used on input line 139.
+Package pdftex.def Info: no_leader.jpg  used on input line 178.
 (pdftex.def)             Requested size: 347.12354pt x 260.3409pt.
-<one_leader.jpg, id=57, 4015.0pt x 3011.25pt>
+<one_leader.jpg, id=77, 4015.0pt x 3011.25pt>
 File: one_leader.jpg Graphic file (type jpg)
 <use one_leader.jpg>
-Package pdftex.def Info: one_leader.jpg  used on input line 144.
+Package pdftex.def Info: one_leader.jpg  used on input line 183.
 (pdftex.def)             Requested size: 347.12354pt x 260.3409pt.
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 155.
- [5] [6 <./no_leader.jpg>] [7 <./one_leader.jpg>]
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 155.
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 189.
+ [8 <./no_leader.jpg>] [9 <./one_leader.jpg>]
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 189.
  (samplepaper.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 155.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 155.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 189.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 189.
 Package rerunfilecheck Info: File `samplepaper.out' has not changed.
 (rerunfilecheck)             Checksum: 515AD48D483E574C3FD80B567F1AA5D1;53.
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 155.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 189.
  ) 
 Here is how much of TeX's memory you used:
- 9231 strings out of 492970
- 130226 string characters out of 3135842
+ 9235 strings out of 492970
+ 130270 string characters out of 3135842
  254439 words of memory out of 3000000
  12981 multiletter control sequences out of 15000+200000
  6278 words of font info for 23 fonts, out of 3000000 for 9000
  1141 hyphenation exceptions out of 8191
- 29i,7n,35p,822b,601s stack positions out of 5000i,500n,10000p,200000b,50000s
+ 29i,7n,35p,1090b,601s stack positions out of 5000i,500n,10000p,200000b,50000s
 <C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmbx10.pfb><C:/Pr
 ogram Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmbx12.pfb><C:/Program Fi
 les/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmbx9.pfb><C:/Program Files/MiKTe
-X 2.9/fonts/type1/public/amsfonts/cm/cmr10.pfb><C:/Program Files/MiKTeX 2.9/fon
-ts/type1/public/amsfonts/cm/cmr7.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/p
-ublic/amsfonts/cm/cmr9.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsf
-onts/cm/cmsy10.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/
-cmti10.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmtt9.pf
-b>
-Output written on samplepaper.pdf (7 pages, 8347070 bytes).
+X 2.9/fonts/type1/public/amsfonts/cm/cmmi10.pfb><C:/Program Files/MiKTeX 2.9/fo
+nts/type1/public/amsfonts/cm/cmr10.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1
+/public/amsfonts/cm/cmr7.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/am
+sfonts/cm/cmr9.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/
+cmsy10.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmti10.p
+fb><C:/Program Files/MiKTeX 2.9/fonts/type1/public/amsfonts/cm/cmtt9.pfb>
+Output written on samplepaper.pdf (9 pages, 8366576 bytes).
 PDF statistics:
- 114 PDF objects out of 1000 (max. 8388607)
- 25 named destinations out of 1000 (max. 500000)
+ 128 PDF objects out of 1000 (max. 8388607)
+ 29 named destinations out of 1000 (max. 500000)
  49 words of extra memory for PDF output out of 10000 (max. 10000000)
 

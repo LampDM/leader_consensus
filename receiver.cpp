@@ -101,8 +101,7 @@ int len(const char *arr){
 		return sizeof(arr)/sizeof(arr[0]);
 	}
 
-char* substr(const char *src, int m, int n)
-	{
+char* substr(const char *src, int m, int n){
 	        int len = n - m;
 	        char *dest = (char*)malloc(sizeof(char) * (len + 1));
 	        int i;
@@ -365,6 +364,5 @@ extern "C" void user_init(void) {
 	xTaskCreate(LR_task,"Listen and react task",1000, NULL ,2,NULL);
 	xTaskCreate(election_timer, "Election timer",1000,NULL,3,&xHandle);
 	reset_election_timer();
-
 
 }
